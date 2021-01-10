@@ -1,0 +1,49 @@
+/* Définition du style de base pour tous les tetromino */
+.tetromino {
+    box-shadow: inset 1.5px 1.5px 1.5px #fff8, inset -1.5px -1.5px 1.5px #0008;
+}
+
+/* Empty */
+.tetromino0 {
+    background-color: whitesmoke;
+}
+
+/* I */
+.tetromino1 {
+    background-color: cyan;
+}
+
+/* J */
+.tetromino2 {
+    background-color: blue;
+}
+
+/* L */
+.tetromino3 {
+    background-color: darkorange;
+}
+
+/* O */
+.tetromino4 {
+    background-color: gold;
+}
+
+/* S */
+.tetromino5 {
+    background-color: green;
+}
+
+/* Z */
+.tetromino6 {
+    background-color: red;
+}
+
+/* T */
+.tetromino7 {
+    background-color: purple;
+}
+
+/* Bloc */
+.tetromino8 {
+    background-color: darkslategrey;
+}

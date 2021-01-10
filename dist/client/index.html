@@ -4,10 +4,35 @@
 	<meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/Tetris.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/style.css" />
 	<title>Tetris 3D</title>
 </head>
 <body>
+    <div class="container-fluid" id="main-container">
+        <div class="row" id="game-container">
+            <div class="col-12 col-md-6 offset-md-1 col-lg-6 offset-lg-3" id="playfield-container"></div>
+            <div class="m-0 col-12 col-md-4 col-lg-2 container-fluid" id="scoreboard-container">
+                <div class="row">
+                    <div class="col-4 col-md-12 text-end"><h2 id="scorefield">0</h2></div>
+                    <div class="col-4 col-md-12 text-center"><p class="d-inline">Lignes </p><p class="d-inline" id="linesfield">0</p></div>
+                    <div class="col-4 col-md-12 text-center"><p class="d-inline">Niveau </p><p class="d-inline" id="levelfield">0</p></div>
+                </div>
+            </div>
+            <div class="col-12 col-md-10 offset-md-1 col-lg-4 offset-lg-4 container-fluid" id="controls-container">
+                <div class="row">
+                    <div class="p-1 col-4"><button type="button" id="leftRot" class="btn btn-primary w-100">A<br />&#x27f2;</button></div>
+                    <div class="p-1 col-4 text-center"><div class="border border-secondary rounded h-100" id="next-tetro"></div></div>
+                    <div class="p-1 col-4"><button type="button" id="rightRot" class="btn btn-primary w-100">E<br />&#x27f3;</button></div>
+                </div>
+                <div class="row">
+                    <div class="p-1 col-4"><button type="button" id="leftMove" class="btn btn-primary w-100">Q<br />&#x2190;</button></div>
+                    <div class="p-1 col-4"><button type="button" id="downMove" class="btn btn-primary w-100">S<br />&#x2193;</button></div>
+                    <div class="p-1 col-4"><button type="button" id="rightMove" class="btn btn-primary w-100">D<br />&#x2192;</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="assets/js/main.js" type="module"></script>
 </body>
 </html>

@@ -1,0 +1,41 @@
+/* La police TETRIS ! */
+@font-face {
+    font-family: 'Futura';
+    src: url('../font/futurablack.woff2');
+}
+
+body {
+    font-family: 'Futura', sans-serif;
+    color: #dddf;
+}
+
+/* Conteneur principal du jeu */
+#game-container {
+    height: 100vh;
+    min-width: 300px;
+    background-color: #0000;
+}
+
+/* Hauteur des conteneurs en mode par défaut (mobile) */
+#playfield-container {
+    height: 70% !important;
+}
+#scoreboard-container {
+    height: 5% !important;
+}
+#controls-container {
+    height: 25% !important;
+}
+
+/* Hauteur des conteneurs @breakpoint >= md */
+@media (min-width: 768px) {
+    #playfield-container {
+        height: 75% !important;
+    }
+    #scoreboard-container {
+        height: 75% !important;
+    }
+    #controls-container {
+        height: 25% !important;
+    }
+}
