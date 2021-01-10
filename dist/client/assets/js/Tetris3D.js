@@ -69,10 +69,29 @@ class Tetris3D {
         this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
         this.render();
     }
-    resize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    static rotate(tetroToRotate, rotation) {
+        let rotatedTetro = [];
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+                switch (rotation) {
+                    case 0:
+                        rotatedTetro[col + row * 4] = tetroToRotate[col + row * 4];
+                        break;
+                    case 1:
+                        rotatedTetro[col + row * 4] = tetroToRotate[12 + row - (col * 4)];
+                        break;
+                    case 2:
+                        rotatedTetro[col + row * 4] = tetroToRotate[15 - (row * 4) - col];
+                        break;
+                    case 3:
+                        rotatedTetro[col + row * 4] = tetroToRotate[3 - row + (col * 4)];
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return rotatedTetro;
     }
     moveTetro(action, keyEvent, isCallback = false) {
         if (!this.isRotKeyDown && !this.isGameOver) {
@@ -188,6 +207,32 @@ class Tetris3D {
             }
         }
     }
+    canPlaceTetro(xToCheck, yToCheck, rotToCheck) {
+        let tetroArray = Tetris3D.rotate((this.tetro)[this.currentTetro - 1], rotToCheck);
+        let canPlace = true;
+        check: for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+                if (tetroArray[col + row * 4] !== 0) {
+                    if (this.playfield.data[xToCheck + col + (yToCheck + row) * this.playfield.cols] !== 0) {
+                        canPlace = false;
+                        break check;
+                    }
+                }
+            }
+        }
+        return canPlace;
+    }
+    placeTetro(show = true) {
+        let tetroArray = Tetris3D.rotate(this.tetro[this.currentTetro - 1], this.currentTetroRot);
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                if (tetroArray[x + y * 4] !== 0) {
+                    this.playfield.data[this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols] = show ? this.currentTetro : 0;
+                }
+            }
+        }
+        this.updateNextTetro();
+    }
     checkLines() {
         let rowsToRemove = [];
         for (let y = 10; y < this.playfield.rows - 1; y++) {
@@ -225,26 +270,6 @@ class Tetris3D {
             }
         }
     }
-    placeTetro(show = true) {
-        let tetroArray = Tetris3D.rotate(this.tetro[this.currentTetro - 1], this.currentTetroRot);
-        for (let y = 0; y < 4; y++) {
-            for (let x = 0; x < 4; x++) {
-                if (tetroArray[x + y * 4] !== 0) {
-                    this.playfield.data[this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols] = show ? this.currentTetro : 0;
-                }
-            }
-        }
-        this.updateNextTetro();
-    }
-    render() {
-        for (let row = 0; row < this.playfield.rows; row++) {
-            for (let col = 0; col < this.playfield.cols; col++) {
-                if (row > 9) {
-                }
-            }
-        }
-        window.requestAnimationFrame(() => this.render());
-    }
     updateNextTetro() {
         this.nextTetroField.innerHTML = '';
         let nextTetroSize;
@@ -274,36 +299,6 @@ class Tetris3D {
             }
         }
     }
-    static rotate(tetroToRotate, rotation) {
-        let rotatedTetro = [];
-        for (let row = 0; row < 4; row++) {
-            for (let col = 0; col < 4; col++) {
-                switch (rotation) {
-                    case 0:
-                        rotatedTetro[col + row * 4] = tetroToRotate[col + row * 4];
-                        break;
-                    case 1:
-                        rotatedTetro[col + row * 4] = tetroToRotate[12 + row - (col * 4)];
-                        break;
-                    case 2:
-                        rotatedTetro[col + row * 4] = tetroToRotate[15 - (row * 4) - col];
-                        break;
-                    case 3:
-                        rotatedTetro[col + row * 4] = tetroToRotate[3 - row + (col * 4)];
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-        return rotatedTetro;
-    }
-    tetroFall() {
-        this.moveTetro('down', null, true);
-    }
-    scorePoints(points) {
-        this.scoreField.textContent = (parseInt(this.scoreField.textContent) + points);
-    }
     newTetro() {
         this.currentTetro = this.nextTetro;
         this.nextTetro = Math.floor(Math.random() * 7) + 1;
@@ -320,20 +315,25 @@ class Tetris3D {
             this.nextTetroField.innerHTML = 'GAME OVER';
         }
     }
-    canPlaceTetro(xToCheck, yToCheck, rotToCheck) {
-        let tetroArray = Tetris3D.rotate((this.tetro)[this.currentTetro - 1], rotToCheck);
-        let canPlace = true;
-        check: for (let row = 0; row < 4; row++) {
-            for (let col = 0; col < 4; col++) {
-                if (tetroArray[col + row * 4] !== 0) {
-                    if (this.playfield.data[xToCheck + col + (yToCheck + row) * this.playfield.cols] !== 0) {
-                        canPlace = false;
-                        break check;
-                    }
+    tetroFall() {
+        this.moveTetro('down', null, true);
+    }
+    scorePoints(points) {
+        this.scoreField.textContent = (parseInt(this.scoreField.textContent) + points);
+    }
+    resize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    render() {
+        for (let row = 0; row < this.playfield.rows; row++) {
+            for (let col = 0; col < this.playfield.cols; col++) {
+                if (row > 9) {
                 }
             }
         }
-        return canPlace;
+        window.requestAnimationFrame(() => this.render());
     }
 }
 export { Tetris3D };

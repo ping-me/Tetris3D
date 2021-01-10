@@ -149,17 +149,46 @@ class Tetris3D {
     }
 
     /**
-     * Callback pour le redimensionnement de la fenêtre.
-     * Met à jour le ratio de l'écran pour la caméra,
-     * redimensionne la taille du rendu,
-     * et met à jour les coordonnées du centre de l'écran.
+     * Permet de faire tourner un tetromino selon une rotation donnée.
+     * @param tetroToRotate Le tetromino à tourner, dans sa position par défaut
+     * @param rotation Le type de rotation à effectuer
+     * @returns Un tableau contenant le tetromino tourné
      */
-    private resize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    private static rotate(tetroToRotate: number[], rotation: number | undefined) {
+        let rotatedTetro: number[] = [];
+        for (let row: number = 0; row < 4; row++) {
+            for (let col: number = 0; col < 4; col++) {
+                switch (rotation) {
+                    case 0:
+                        // Aucune rotation
+                        rotatedTetro[col + row * 4] = tetroToRotate[col + row * 4];
+                        break;
+                    case 1:
+                        // 90° sens horaire
+                        rotatedTetro[col + row * 4] = tetroToRotate[12 + row - (col * 4)];
+                        break;
+                    case 2:
+                        // 180° sens horaire
+                        rotatedTetro[col + row * 4] = tetroToRotate[15 - (row * 4) - col];
+                        break;
+                    case 3:
+                        // 270° sens horaire
+                        rotatedTetro[col + row * 4] = tetroToRotate[3 - row + (col * 4)];
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return rotatedTetro;
     }
 
+    /**
+     * Permet de déplacer un tetromino.
+     * @param action L'action a effectuer.
+     * @param keyEvent Si c'est une touche du clavier qui a été appuyé, permet de récupérer la touche appuyée.
+     * @param isCallback Mise à true par le callback pour indiquer que la pièce tombe.
+     */
     private moveTetro(action: string, keyEvent: KeyboardEvent, isCallback: boolean = false) {
         if (!this.isRotKeyDown && !this.isGameOver) {
             let nextTetroX: number;
@@ -290,6 +319,51 @@ class Tetris3D {
         }
     }
 
+    /**
+     * Permet de vérifier si on peut placer le tetromino à cet endroit.
+     * @param {int} xToCheck La position X du tetromino à vérifier
+     * @param {int} yToCheck La position Y du tetromino à vérifier
+     * @param {int} rotToCheck La rotation à appliquer au tetromino en cours de vérification
+     * @returns {boolean} true si la pièce peut être placée, sinon false
+     */
+    private canPlaceTetro(xToCheck: number, yToCheck: number, rotToCheck: number) {
+        let tetroArray: number[] = Tetris3D.rotate((this.tetro)[this.currentTetro - 1], rotToCheck);
+        let canPlace: boolean = true;
+        check:
+            for (let row: number = 0; row < 4; row++) {
+                for (let col: number = 0; col < 4; col++) {
+                    if (tetroArray[col + row * 4] !== 0) {
+                        if (this.playfield.data[xToCheck + col + (yToCheck + row) * this.playfield.cols] !== 0) {
+                            canPlace = false;
+                            break check;
+                        }
+                    }
+                }
+            }
+        return canPlace;
+    }
+
+    /**
+     * Permet d'afficher ou de masquer un tetromino.
+     * @param show Toggle pour afficher ou cacher le tetromino.
+     */
+    private placeTetro(show: boolean = true) {
+        let tetroArray = Tetris3D.rotate(this.tetro[this.currentTetro - 1], this.currentTetroRot);
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                if (tetroArray[x + y * 4] !== 0) {
+                    // @ts-ignore
+                    this.playfield.data[this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols] = show ? this.currentTetro : 0;
+                }
+            }
+        }
+        // Mets aussi à jour le nouveau tetro
+        this.updateNextTetro();
+    }
+
+    /**
+     * Permet de vérifier si des lignes ont été réalisées.
+     */
     private checkLines() {
         // On recherche d'abord les lignes
         let rowsToRemove = [];
@@ -341,34 +415,9 @@ class Tetris3D {
         }
     }
 
-    private placeTetro(show: boolean = true) {
-        let tetroArray = Tetris3D.rotate(this.tetro[this.currentTetro - 1], this.currentTetroRot);
-        for (let y = 0; y < 4; y++) {
-            for (let x = 0; x < 4; x++) {
-                if (tetroArray[x + y * 4] !== 0) {
-                    // @ts-ignore
-                    this.playfield.data[this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols] = show ? this.currentTetro : 0;
-                }
-            }
-        }
-        // Mets aussi à jour le nouveau tetro
-        this.updateNextTetro();
-    }
-
-    private render() {
-        // Début du parcours du tableau de jeu
-        for (let row = 0; row < this.playfield.rows; row++) {
-            for (let col = 0; col < this.playfield.cols; col++) {
-                // On n'affiche pas les 10 premières lignes
-                if (row > 9) {
-                    // Création du bloc à afficher
-
-                }
-            }
-        }
-        window.requestAnimationFrame(() => this.render());
-    }
-
+    /**
+     * Dessine le tetromino suivant dans sa fenêtre dédiée.
+     */
     private updateNextTetro() {
         // @ts-ignore
         this.nextTetroField.innerHTML = '';
@@ -412,44 +461,9 @@ class Tetris3D {
         }
     }
 
-    private static rotate(tetroToRotate: number[], rotation: number | undefined) {
-        let rotatedTetro: number[] = [];
-        for (let row: number = 0; row < 4; row++) {
-            for (let col: number = 0; col < 4; col++) {
-                switch (rotation) {
-                    case 0:
-                        // Aucune rotation
-                        rotatedTetro[col + row * 4] = tetroToRotate[col + row * 4];
-                        break;
-                    case 1:
-                        // 90° sens horaire
-                        rotatedTetro[col + row * 4] = tetroToRotate[12 + row - (col * 4)];
-                        break;
-                    case 2:
-                        // 180° sens horaire
-                        rotatedTetro[col + row * 4] = tetroToRotate[15 - (row * 4) - col];
-                        break;
-                    case 3:
-                        // 270° sens horaire
-                        rotatedTetro[col + row * 4] = tetroToRotate[3 - row + (col * 4)];
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-        return rotatedTetro;
-    }
-
-    private tetroFall() {
-        this.moveTetro('down', <KeyboardEvent><unknown>null, true);
-    }
-
-    private scorePoints(points: number) {
-        // @ts-ignore
-        this.scoreField.textContent = (parseInt(this.scoreField.textContent) + points);
-    }
-
+    /**
+     * Fais du prochain tetromino le tetromino en cours, et crée le suivant.
+     */
     private newTetro() {
         this.currentTetro = this.nextTetro;
         this.nextTetro = Math.floor(Math.random() * 7) + 1;
@@ -469,21 +483,49 @@ class Tetris3D {
         }
     }
 
-    private canPlaceTetro(xToCheck: number, yToCheck: number, rotToCheck: number) {
-        let tetroArray: number[] = Tetris3D.rotate((this.tetro)[this.currentTetro - 1], rotToCheck);
-        let canPlace: boolean = true;
-        check:
-            for (let row: number = 0; row < 4; row++) {
-                for (let col: number = 0; col < 4; col++) {
-                    if (tetroArray[col + row * 4] !== 0) {
-                        if (this.playfield.data[xToCheck + col + (yToCheck + row) * this.playfield.cols] !== 0) {
-                            canPlace = false;
-                            break check;
-                        }
-                    }
+    /**
+     * Fonction callback qui fait tomber naturellement la pièce.
+     */
+    private tetroFall() {
+        this.moveTetro('down', <KeyboardEvent><unknown>null, true);
+    }
+
+    /**
+     * Permet de rajouter des points au score du joueur
+     * @param {int} points Points à rajouter au score
+     */
+    private scorePoints(points: number) {
+        // @ts-ignore
+        this.scoreField.textContent = (parseInt(this.scoreField.textContent) + points);
+    }
+
+    /**
+     * Callback pour le redimensionnement de la fenêtre.
+     * Met à jour le ratio de l'écran pour la caméra,
+     * redimensionne la taille du rendu,
+     * et met à jour les coordonnées du centre de l'écran.
+     */
+    private resize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /**
+     * Dessine la scène 3D.
+     */
+    private render() {
+        // Début du parcours du tableau de jeu
+        for (let row = 0; row < this.playfield.rows; row++) {
+            for (let col = 0; col < this.playfield.cols; col++) {
+                // On n'affiche pas les 10 premières lignes
+                if (row > 9) {
+                    // Création du bloc à afficher
+
                 }
             }
-        return canPlace;
+        }
+        window.requestAnimationFrame(() => this.render());
     }
 }
 
