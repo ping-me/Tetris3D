@@ -1,18 +1,16 @@
-import * as THREE from '/three.module.js';
 import { HTMLView } from "./HTMLView.js";
 import { Playfield } from "./Playfield.js";
+import { GraphicEngine } from "./GraphicEngine.js";
 
 class Tetris3D {
-    // Composants de base THREE.js
-    private scene: THREE.Scene;
-    private camera: THREE.PerspectiveCamera;
-    private renderer: THREE.WebGLRenderer;
-
     // Vue HTML du jeu
     private view: HTMLView;
 
     // Données du jeu
-    private playfield : Playfield;
+    private readonly playfield : Playfield;
+
+    // Moteur graphique
+    private engine: GraphicEngine;
 
     // Contrôle du jeu
     private isGameOver: boolean = false;
@@ -47,31 +45,38 @@ class Tetris3D {
      * @param fr Le nombre de lignes du terrain de jeu
      */
     public constructor(fc: number = 10, fr: number = 24) {
-        // Initialisation THREE
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
-        this.renderer = new THREE.WebGLRenderer();
-
-        // Ajout de la zone de jeu au DOM
-        this.renderer.domElement.style.position = 'fixed';
-        this.renderer.domElement.style.top = '0';
-        this.renderer.domElement.style.left = '0';
-        this.renderer.domElement.style.zIndex = '-1';
-        document.body.appendChild(this.renderer.domElement);
-
         // Création de l'objet pour la vue HTML
         this.view = new HTMLView();
 
         // Initialisation des données du terrain de jeu
-        this.playfield = new Playfield([], fc, fr);
+        this.playfield = new Playfield(fc, fr);
+
+        // Création du moteur graphique
+        this.engine = new GraphicEngine(this.playfield);
 
         // Choix du prochain tetro
         this.nextTetro = Math.floor(Math.random() * 7) + 1;
         this.currentTetro = 0;
 
-        // Dimensionnement initial du terrain de jeu
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
+        // Création des murs extérieurs du terrain de jeu
+        for (let row: number = 0; row < this.playfield.rows; row++) {
+            for (let col: number = 0; col < this.playfield.cols; col++) {
+                // On n'affiche pas les 10 premières lignes
+                if (row > 9) {
+                    if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
+                        // On met des tetromino incassables sur les bords et le bas
+                        // pour délimiter le terrain de jeu.
+                        this.playfield.data.push(8);
+                        this.engine.createCube(col + this.playfield.cols * row, 7);
+                        this.engine.placeCube(this.playfield.block[col + this.playfield.cols * row], col, row);
+                    }
+                    else {
+                        // On laisse l'espace vide pour le reste.
+                        this.playfield.data.push(0);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -136,10 +141,9 @@ class Tetris3D {
     public start() {
         //  Mise en place des pièces de départ
         this.newTetro();
-        this.placeTetro();
         // Envoi du timer de chute des pièces
         this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
-        this.render();
+        this.engine.animate();
     }
 
     /**
@@ -347,7 +351,18 @@ class Tetris3D {
             for (let x = 0; x < 4; x++) {
                 if (tetroArray[x + y * 4] !== 0) {
                     // @ts-ignore
-                    this.playfield.data[this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols] = show ? this.currentTetro : 0;
+                    let indice = this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols;
+                    this.playfield.data[indice] = show ? this.currentTetro : 0;
+                    if (show) {
+                        this.engine.createCube(indice, this.currentTetro);
+                        // @ts-ignore
+                        this.engine.placeCube(this.playfield.block[indice], this.currentTetroX + x, this.currentTetroY + y);
+                    }
+                    else {
+                        if (this.playfield.block[indice]) {
+                            this.engine.removeCube(indice);
+                        }
+                    }
                 }
             }
         }
@@ -361,15 +376,15 @@ class Tetris3D {
     private checkLines() {
         // On recherche d'abord les lignes
         let rowsToRemove = [];
-        for (let y = 10; y < this.playfield.rows - 1; y++) {
+        for (let row: number = 10; row < this.playfield.rows - 1; row++) {
             let hasLine = true;
-            for (let x = 1; x < this.playfield.cols - 1; x++) {
-                if (this.playfield.data[x + y * this.playfield.cols] === 0) {
+            for (let col: number = 1; col < this.playfield.cols - 1; col++) {
+                if (this.playfield.data[col + row * this.playfield.cols] === 0) {
                     hasLine = false;
                 }
             }
             if (hasLine) {
-                rowsToRemove.push(y);
+                rowsToRemove.push(row);
             }
         }
         // Si il y a des lignes à enlever, on le fait
@@ -379,12 +394,18 @@ class Tetris3D {
             let pointsScored = ((50 + (50 * parseInt(this.view.level.textContent))) * rowsToRemove.length) * rowsToRemove.length;
             let hasPassedLevel = false;
             for (let rowToRemove of rowsToRemove) {
-                for (let x = 1; x < this.playfield.cols - 1; x++) {
+                for (let col: number = 1; col < this.playfield.cols - 1; col++) {
                     // On met la case à zéro
-                    this.playfield.data[x + rowToRemove * this.playfield.cols] = 0;
+                    this.playfield.data[col + rowToRemove * this.playfield.cols] = 0;
+                    this.engine.removeCube(col + rowToRemove * this.playfield.cols);
                     // Et on fait tomber les blocs
-                    for (let y: number = rowToRemove - 1; y >= 0; y--) {
-                        this.playfield.data[x + (y + 1) * this.playfield.cols] = this.playfield.data[x + y * this.playfield.cols];
+                    for (let row: number = rowToRemove - 1; row >= 0; row--) {
+                        this.playfield.data[col + (row + 1) * this.playfield.cols] = this.playfield.data[col + row * this.playfield.cols];
+                        if (this.playfield.data[col + (row + 1) * this.playfield.cols]) {
+                            this.engine.createCube(col + (row + 1) * this.playfield.cols, this.playfield.data[col + row * this.playfield.cols]);
+                            this.engine.removeCube(col + row * this.playfield.cols);
+                            this.engine.placeCube(this.playfield.block[col + (row + 1) * this.playfield.cols], col, row + 1);
+                        }
                     }
                 }
                 // @ts-ignore
@@ -436,34 +457,6 @@ class Tetris3D {
      */
     private tetroFall() {
         this.moveTetro('down', <KeyboardEvent><unknown>null, true);
-    }
-
-    /**
-     * Callback pour le redimensionnement de la fenêtre.
-     * Met à jour le ratio de l'écran pour la caméra,
-     * redimensionne la taille du rendu,
-     * et met à jour les coordonnées du centre de l'écran.
-     */
-    private resize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    /**
-     * Dessine la scène 3D.
-     */
-    private render(time: number = Date.now()) {
-        // Début du parcours du tableau de jeu
-        for (let row = 0; row < this.playfield.rows; row++) {
-            for (let col = 0; col < this.playfield.cols; col++) {
-                // On n'affiche pas les 10 premières lignes
-                if (row > 9) {
-                    // Création du bloc à afficher
-                }
-            }
-        }
-        window.requestAnimationFrame((time: number) => this.render(time));
     }
 }
 

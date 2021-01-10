@@ -1,6 +1,6 @@
-import * as THREE from '/three.module.js';
 import { HTMLView } from "./HTMLView.js";
 import { Playfield } from "./Playfield.js";
+import { GraphicEngine } from "./GraphicEngine.js";
 class Tetris3D {
     constructor(fc = 10, fr = 24) {
         this.isGameOver = false;
@@ -15,20 +15,25 @@ class Tetris3D {
             [0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]
         ];
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
-        this.renderer = new THREE.WebGLRenderer();
-        this.renderer.domElement.style.position = 'fixed';
-        this.renderer.domElement.style.top = '0';
-        this.renderer.domElement.style.left = '0';
-        this.renderer.domElement.style.zIndex = '-1';
-        document.body.appendChild(this.renderer.domElement);
         this.view = new HTMLView();
-        this.playfield = new Playfield([], fc, fr);
+        this.playfield = new Playfield(fc, fr);
+        this.engine = new GraphicEngine(this.playfield);
         this.nextTetro = Math.floor(Math.random() * 7) + 1;
         this.currentTetro = 0;
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
+        for (let row = 0; row < this.playfield.rows; row++) {
+            for (let col = 0; col < this.playfield.cols; col++) {
+                if (row > 9) {
+                    if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
+                        this.playfield.data.push(8);
+                        this.engine.createCube(col + this.playfield.cols * row, 7);
+                        this.engine.placeCube(this.playfield.block[col + this.playfield.cols * row], col, row);
+                    }
+                    else {
+                        this.playfield.data.push(0);
+                    }
+                }
+            }
+        }
     }
     setView(nextTetro, scoreDiv, linesDiv, levelDiv) {
         this.view.nextTetro = nextTetro;
@@ -68,9 +73,8 @@ class Tetris3D {
     }
     start() {
         this.newTetro();
-        this.placeTetro();
         this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
-        this.render();
+        this.engine.animate();
     }
     static rotate(tetroToRotate, rotation) {
         let rotatedTetro = [];
@@ -230,7 +234,17 @@ class Tetris3D {
         for (let y = 0; y < 4; y++) {
             for (let x = 0; x < 4; x++) {
                 if (tetroArray[x + y * 4] !== 0) {
-                    this.playfield.data[this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols] = show ? this.currentTetro : 0;
+                    let indice = this.currentTetroX + x + (this.currentTetroY + y) * this.playfield.cols;
+                    this.playfield.data[indice] = show ? this.currentTetro : 0;
+                    if (show) {
+                        this.engine.createCube(indice, this.currentTetro);
+                        this.engine.placeCube(this.playfield.block[indice], this.currentTetroX + x, this.currentTetroY + y);
+                    }
+                    else {
+                        if (this.playfield.block[indice]) {
+                            this.engine.removeCube(indice);
+                        }
+                    }
                 }
             }
         }
@@ -238,25 +252,31 @@ class Tetris3D {
     }
     checkLines() {
         let rowsToRemove = [];
-        for (let y = 10; y < this.playfield.rows - 1; y++) {
+        for (let row = 10; row < this.playfield.rows - 1; row++) {
             let hasLine = true;
-            for (let x = 1; x < this.playfield.cols - 1; x++) {
-                if (this.playfield.data[x + y * this.playfield.cols] === 0) {
+            for (let col = 1; col < this.playfield.cols - 1; col++) {
+                if (this.playfield.data[col + row * this.playfield.cols] === 0) {
                     hasLine = false;
                 }
             }
             if (hasLine) {
-                rowsToRemove.push(y);
+                rowsToRemove.push(row);
             }
         }
         if (rowsToRemove.length) {
             let pointsScored = ((50 + (50 * parseInt(this.view.level.textContent))) * rowsToRemove.length) * rowsToRemove.length;
             let hasPassedLevel = false;
             for (let rowToRemove of rowsToRemove) {
-                for (let x = 1; x < this.playfield.cols - 1; x++) {
-                    this.playfield.data[x + rowToRemove * this.playfield.cols] = 0;
-                    for (let y = rowToRemove - 1; y >= 0; y--) {
-                        this.playfield.data[x + (y + 1) * this.playfield.cols] = this.playfield.data[x + y * this.playfield.cols];
+                for (let col = 1; col < this.playfield.cols - 1; col++) {
+                    this.playfield.data[col + rowToRemove * this.playfield.cols] = 0;
+                    this.engine.removeCube(col + rowToRemove * this.playfield.cols);
+                    for (let row = rowToRemove - 1; row >= 0; row--) {
+                        this.playfield.data[col + (row + 1) * this.playfield.cols] = this.playfield.data[col + row * this.playfield.cols];
+                        if (this.playfield.data[col + (row + 1) * this.playfield.cols]) {
+                            this.engine.createCube(col + (row + 1) * this.playfield.cols, this.playfield.data[col + row * this.playfield.cols]);
+                            this.engine.removeCube(col + row * this.playfield.cols);
+                            this.engine.placeCube(this.playfield.block[col + (row + 1) * this.playfield.cols], col, row + 1);
+                        }
                     }
                 }
                 this.view.lines.textContent = parseInt(this.view.lines.textContent) + 1;
@@ -291,20 +311,6 @@ class Tetris3D {
     }
     tetroFall() {
         this.moveTetro('down', null, true);
-    }
-    resize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-    render(time = Date.now()) {
-        for (let row = 0; row < this.playfield.rows; row++) {
-            for (let col = 0; col < this.playfield.cols; col++) {
-                if (row > 9) {
-                }
-            }
-        }
-        window.requestAnimationFrame((time) => this.render(time));
     }
 }
 export { Tetris3D };
