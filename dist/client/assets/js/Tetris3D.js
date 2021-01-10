@@ -1,7 +1,8 @@
 import * as THREE from '/three.module.js';
 import { Playfield } from "./Playfield.js";
+import { HTMLView } from "./HTMLView.js";
 class Tetris3D {
-    constructor(nextTetroDiv, fc = 10, fr = 24) {
+    constructor(fc = 10, fr = 24) {
         this.isGameOver = false;
         this.tetroFallDelay = 1000;
         this.isRotKeyDown = false;
@@ -22,40 +23,40 @@ class Tetris3D {
         this.renderer.domElement.style.left = '0';
         this.renderer.domElement.style.zIndex = '-1';
         document.body.appendChild(this.renderer.domElement);
-        this.nextTetroField = nextTetroDiv;
-        this.nextTetroField.style.position = 'relative';
+        this.view = new HTMLView();
         this.playfield = new Playfield([], fc, fr);
         this.nextTetro = Math.floor(Math.random() * 7) + 1;
         this.currentTetro = 0;
         this.resize();
         window.addEventListener('resize', () => this.resize());
-        this.newTetro();
-        this.placeTetro();
     }
-    setStatBoard(scoreDiv, linesDiv, levelDiv) {
-        this.scoreField = scoreDiv;
-        this.linesField = linesDiv;
-        this.levelField = levelDiv;
+    setView(nextTetro, scoreDiv, linesDiv, levelDiv) {
+        this.view.nextTetro = nextTetro;
+        this.view.nextTetro.style.position = 'relative';
+        this.view.score = scoreDiv;
+        this.view.lines = linesDiv;
+        this.view.level = levelDiv;
     }
-    setControls(lBtn, lrBtn, rBtn, rrBtn, dBtn) {
-        this.leftButton = lBtn;
-        this.leftRotButton = lrBtn;
-        this.rightButton = rBtn;
-        this.rightRotButton = rrBtn;
-        this.downButton = dBtn;
-        this.leftButton.addEventListener('click', () => {
+    setControl(lBtn, lrBtn, rBtn, rrBtn, dBtn) {
+        var _a, _b, _c, _d, _e;
+        this.view.leftBtn = lBtn;
+        this.view.leftRotBtn = lrBtn;
+        this.view.rightBtn = rBtn;
+        this.view.rightRotBtn = rrBtn;
+        this.view.downBtn = dBtn;
+        (_a = this.view.leftBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             this.moveTetro('left', null);
         });
-        this.leftRotButton.addEventListener('click', () => {
+        (_b = this.view.leftRotBtn) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
             this.moveTetro('rotleft', null);
         });
-        this.rightButton.addEventListener('click', () => {
+        (_c = this.view.rightBtn) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
             this.moveTetro('right', null);
         });
-        this.rightRotButton.addEventListener('click', () => {
+        (_d = this.view.rightRotBtn) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
             this.moveTetro('rotright', null);
         });
-        this.downButton.addEventListener('click', () => {
+        (_e = this.view.downBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
             this.moveTetro('down', null);
         });
         document.addEventListener('keydown', (event) => {
@@ -66,6 +67,8 @@ class Tetris3D {
         });
     }
     start() {
+        this.newTetro();
+        this.placeTetro();
         this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
         this.render();
     }
@@ -122,9 +125,9 @@ class Tetris3D {
                     break;
                 case 'down':
                     if (!isCallback) {
-                        this.scorePoints(10);
+                        this.view.scorePoints(10);
                         window.clearInterval(this.fallCallback);
-                        this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
+                        this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                     }
                     nextTetroY++;
                     break;
@@ -135,7 +138,7 @@ class Tetris3D {
                                 window.clearInterval(this.fallCallback);
                             }
                             else {
-                                this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
+                                this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                             }
                             break;
                         case 'q':
@@ -164,9 +167,9 @@ class Tetris3D {
                             break;
                         case 's':
                         case 'S':
-                            this.scorePoints(10);
+                            this.view.scorePoints(10);
                             window.clearInterval(this.fallCallback);
-                            this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
+                            this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                             nextTetroY++;
                             break;
                         default:
@@ -197,7 +200,7 @@ class Tetris3D {
                 }
                 if (willStick) {
                     this.placeTetro();
-                    this.scorePoints(50);
+                    this.view.scorePoints(50);
                     this.checkLines();
                     this.newTetro();
                 }
@@ -231,7 +234,7 @@ class Tetris3D {
                 }
             }
         }
-        this.updateNextTetro();
+        this.view.updateNextTetro(this.tetro, this.nextTetro);
     }
     checkLines() {
         let rowsToRemove = [];
@@ -247,7 +250,7 @@ class Tetris3D {
             }
         }
         if (rowsToRemove.length) {
-            let pointsScored = ((50 + (50 * parseInt(this.levelField.textContent))) * rowsToRemove.length) * rowsToRemove.length;
+            let pointsScored = ((50 + (50 * parseInt(this.view.level.textContent))) * rowsToRemove.length) * rowsToRemove.length;
             let hasPassedLevel = false;
             for (let rowToRemove of rowsToRemove) {
                 for (let x = 1; x < this.playfield.cols - 1; x++) {
@@ -256,46 +259,17 @@ class Tetris3D {
                         this.playfield.data[x + (y + 1) * this.playfield.cols] = this.playfield.data[x + y * this.playfield.cols];
                     }
                 }
-                this.linesField.textContent = parseInt(this.linesField.textContent) + 1;
-                if (!(parseInt(this.linesField.textContent) % 10)) {
+                this.view.lines.textContent = parseInt(this.view.lines.textContent) + 1;
+                if (!(parseInt(this.view.lines.textContent) % 10)) {
                     hasPassedLevel = true;
                 }
             }
-            this.scorePoints(pointsScored);
+            this.view.scorePoints(pointsScored);
             if (hasPassedLevel) {
-                this.levelField.textContent = parseInt(this.levelField.textContent) + 1;
+                this.view.level.textContent = parseInt(this.view.level.textContent) + 1;
                 this.tetroFallDelay = this.tetroFallDelay * 0.95;
                 window.clearInterval(this.fallCallback);
                 this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
-            }
-        }
-    }
-    updateNextTetro() {
-        this.nextTetroField.innerHTML = '';
-        let nextTetroSize;
-        if (this.nextTetroField.clientHeight < this.nextTetroField.clientWidth) {
-            nextTetroSize = this.nextTetroField.clientHeight * 0.75;
-        }
-        else {
-            nextTetroSize = this.nextTetroField.clientWidth * 0.75;
-        }
-        let nextTetroBloc = nextTetroSize / 4;
-        let nextTetroDivTop = this.nextTetroField.clientHeight / 2 - nextTetroBloc * 2;
-        let nextTetroDivLeft = this.nextTetroField.clientWidth / 2 - nextTetroBloc * 2;
-        let nextTetroData = (this.tetro)[this.nextTetro - 1];
-        for (let row = 0; row < 4; row++) {
-            for (let col = 0; col < 4; col++) {
-                if (nextTetroData[col + row * 4] !== 0) {
-                    let block = document.createElement('div');
-                    block.style.position = 'absolute';
-                    block.style.width = nextTetroBloc + 'px';
-                    block.style.height = nextTetroBloc + 'px';
-                    block.style.top = (nextTetroDivTop + nextTetroBloc * row) + 'px';
-                    block.style.left = (nextTetroDivLeft + nextTetroBloc * col) + 'px';
-                    block.classList.add('tetromino');
-                    block.classList.add('tetromino' + this.nextTetro);
-                    this.nextTetroField.appendChild(block);
-                }
             }
         }
     }
@@ -312,28 +286,25 @@ class Tetris3D {
             this.placeTetro();
             window.clearInterval(this.fallCallback);
             this.isGameOver = true;
-            this.nextTetroField.innerHTML = 'GAME OVER';
+            this.view.nextTetro.innerHTML = 'GAME OVER';
         }
     }
     tetroFall() {
         this.moveTetro('down', null, true);
-    }
-    scorePoints(points) {
-        this.scoreField.textContent = (parseInt(this.scoreField.textContent) + points);
     }
     resize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
-    render() {
+    render(time = Date.now()) {
         for (let row = 0; row < this.playfield.rows; row++) {
             for (let col = 0; col < this.playfield.cols; col++) {
                 if (row > 9) {
                 }
             }
         }
-        window.requestAnimationFrame(() => this.render());
+        window.requestAnimationFrame((time) => this.render(time));
     }
 }
 export { Tetris3D };

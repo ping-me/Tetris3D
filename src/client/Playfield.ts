@@ -1,6 +1,9 @@
+import * as THREE from '/three.module.js';
+
 export class Playfield {
     // Données du terrain de jeu
     public data: number[];
+    public block?: THREE.Mesh;
 
     // Taille du terrain de jeu
     public cols: number;
@@ -14,10 +17,6 @@ export class Playfield {
      */
     public constructor(data: [], col: number, row: number) {
         this.data = data;
-        this.cols = col;
-        this.rows = row;
-        // Initialisation du tableau principal
-        this.data = [];
         // On rajoute 1 bloc de chaque côté pour délimiter le terrain de jeu
         this.cols = col + 2;
         // On rajoute 10 lignes pour la zone cachée nécessaire pour stocker les pièces empilées au dessus de la zone de jeu visible.

@@ -1,9 +1,6 @@
 export class Playfield {
     constructor(data, col, row) {
         this.data = data;
-        this.cols = col;
-        this.rows = row;
-        this.data = [];
         this.cols = col + 2;
         this.rows = row + 10;
         for (let row = 0; row < this.rows; row++) {

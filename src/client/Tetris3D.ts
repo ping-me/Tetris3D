@@ -1,5 +1,6 @@
 import * as THREE from '/three.module.js';
 import { Playfield } from "./Playfield.js";
+import { HTMLView } from "./HTMLView.js";
 
 class Tetris3D {
     // Composants de base THREE.js
@@ -7,18 +8,8 @@ class Tetris3D {
     private camera: THREE.PerspectiveCamera;
     private renderer: THREE.WebGLRenderer;
 
-    // Divs container pour les données de jeu
-    private nextTetroField?: HTMLElement | undefined;
-    private scoreField?: HTMLElement | undefined;
-    private linesField?: HTMLElement | undefined;
-    private levelField?: HTMLElement | undefined;
-
-    // Boutons pour les contrôles
-    private leftButton?: HTMLElement;
-    private leftRotButton?: HTMLElement;
-    private rightButton?: HTMLElement;
-    private rightRotButton?: HTMLElement;
-    private downButton?: HTMLElement;
+    // Vue HTML du jeu
+    private view: HTMLView;
 
     // Contrôle du jeu
     private playfield : Playfield;
@@ -32,9 +23,9 @@ class Tetris3D {
     // Pièce en cours
     private currentTetro: number;
     private nextTetro: number;
-    private currentTetroX: number | undefined;
-    private currentTetroY: number | undefined;
-    private currentTetroRot: number | undefined;
+    private currentTetroX?: number;
+    private currentTetroY?: number;
+    private currentTetroRot?: number;
 
     // Définition des tetrominos.
     // Dans l'ordre : I, J, L, O, S, Z, T
@@ -50,11 +41,10 @@ class Tetris3D {
 
     /**
      * Initialisation de THREE.js et création du canvas.
-     * @param nextTetroDiv Le div qui doit afficher le prochain tetro
      * @param fc Le nombre de colonnes du terrain de jeu
      * @param fr Le nombre de lignes du terrain de jeu
      */
-    public constructor(nextTetroDiv: HTMLElement, fc: number = 10, fr: number = 24) {
+    public constructor(fc: number = 10, fr: number = 24) {
         // Initialisation THREE.js
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
@@ -67,9 +57,8 @@ class Tetris3D {
         this.renderer.domElement.style.zIndex = '-1';
         document.body.appendChild(this.renderer.domElement);
 
-        // Assignation des div pour le score
-        this.nextTetroField = nextTetroDiv;
-        this.nextTetroField.style.position = 'relative';
+        // Création de l'objet pour la vue HTML
+        this.view = new HTMLView();
 
         // Initialisation des données du terrain de jeu
         this.playfield = new Playfield([], fc, fr);
@@ -81,54 +70,54 @@ class Tetris3D {
         // Dimensionnement initial du terrain de jeu
         this.resize();
         window.addEventListener('resize', () => this.resize());
-
-        //  Mise en place des pièces de départ
-        this.newTetro();
-        this.placeTetro();
     }
 
     /**
      * Permet de renseigner les div qui contiendront le score et le niveau actuel
      * DOIT être appelé.
+     * @param nextTetro Le div qui doit afficher le prochain tetro
      * @param scoreDiv L'élément DOM contenant le score : son textContent sera remplacé
      * @param linesDiv L'élément où doit apparître le nombre de lignes réalisées
      * @param levelDiv L'élément DOM contenant le niveau en cours : son textContent sera remplacé
      */
-    public setStatBoard(scoreDiv: HTMLElement, linesDiv: HTMLElement, levelDiv: HTMLElement) {
-        this.scoreField = scoreDiv;
-        this.linesField = linesDiv;
-        this.levelField = levelDiv;
+    public setView(nextTetro: HTMLElement, scoreDiv: HTMLElement, linesDiv: HTMLElement, levelDiv: HTMLElement) {
+        // Assignation des div pour le prochain tetro
+        this.view.nextTetro = nextTetro;
+        this.view.nextTetro.style.position = 'relative';
+        this.view.score = scoreDiv;
+        this.view.lines = linesDiv;
+        this.view.level = levelDiv;
     }
 
     /**
-     * Permet de renseigner les boutons de commande
-     * DOIT être appelé.
+     * Permet de renseigner les boutons de commande.
+     * DOIT être appelé, mais si aucun argument, seul les touches du claviers seront disponibles.
      * @param lBtn Le bouton Gauche
      * @param lrBtn Le bouton pour tourner la pièce vers la gauche
      * @param rBtn Le bouton Droit
      * @param rrBtn Le bouton pour tourner la pièce vers la droite
      * @param dBtn Le bouton Bas
      */
-    public setControls(lBtn: HTMLElement, lrBtn: HTMLElement, rBtn: HTMLElement, rrBtn: HTMLElement, dBtn: HTMLElement) {
-        this.leftButton = lBtn;
-        this.leftRotButton = lrBtn;
-        this.rightButton = rBtn;
-        this.rightRotButton = rrBtn;
-        this.downButton = dBtn;
+    public setControl(lBtn?: HTMLElement, lrBtn?: HTMLElement, rBtn?: HTMLElement, rrBtn?: HTMLElement, dBtn?: HTMLElement) {
+        this.view.leftBtn = lBtn;
+        this.view.leftRotBtn = lrBtn;
+        this.view.rightBtn = rBtn;
+        this.view.rightRotBtn = rrBtn;
+        this.view.downBtn = dBtn;
         // Ajout des listener
-        this.leftButton.addEventListener('click', () => {
+        this.view.leftBtn?.addEventListener('click', () => {
             this.moveTetro('left', <KeyboardEvent><unknown>null);
         });
-        this.leftRotButton.addEventListener('click', () => {
+        this.view.leftRotBtn?.addEventListener('click', () => {
             this.moveTetro('rotleft', <KeyboardEvent><unknown>null);
         });
-        this.rightButton.addEventListener('click', () => {
+        this.view.rightBtn?.addEventListener('click', () => {
             this.moveTetro('right', <KeyboardEvent><unknown>null);
         });
-        this.rightRotButton.addEventListener('click', () => {
+        this.view.rightRotBtn?.addEventListener('click', () => {
             this.moveTetro('rotright', <KeyboardEvent><unknown>null);
         });
-        this.downButton.addEventListener('click', () => {
+        this.view.downBtn?.addEventListener('click', () => {
             this.moveTetro('down', <KeyboardEvent><unknown>null);
         });
         document.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -143,6 +132,9 @@ class Tetris3D {
      * Démarre le jeu
      */
     public start() {
+        //  Mise en place des pièces de départ
+        this.newTetro();
+        this.placeTetro();
         // Envoi du timer de chute des pièces
         this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
         this.render();
@@ -221,9 +213,9 @@ class Tetris3D {
                 case 'down':
                     if (!isCallback) {
                         // Si on fait descendre la pièce et que ce n'est pas le callback
-                        this.scorePoints(10);
+                        this.view.scorePoints(10);
                         window.clearInterval(this.fallCallback);
-                        this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
+                        this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                     }
                     nextTetroY++;
                     break;
@@ -235,7 +227,7 @@ class Tetris3D {
                                 window.clearInterval(this.fallCallback);
                             }
                             else {
-                                this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
+                                this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                             }
                             break;
                         case 'q':
@@ -265,9 +257,9 @@ class Tetris3D {
                         case 's':
                         case 'S':
                             // On rajoute 10 points par lignes quand on fait descendre volontairement la pièce
-                            this.scorePoints(10);
+                            this.view.scorePoints(10);
                             window.clearInterval(this.fallCallback);
-                            this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
+                            this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                             nextTetroY++;
                             break;
                         default:
@@ -307,7 +299,7 @@ class Tetris3D {
                     // La pièce s'accroche
                     this.placeTetro();
                     // On rajoute 50 points pour avoir collé la pièce
-                    this.scorePoints(50);
+                    this.view.scorePoints(50);
                     this.checkLines();
                     this.newTetro();
                 }
@@ -358,7 +350,7 @@ class Tetris3D {
             }
         }
         // Mets aussi à jour le nouveau tetro
-        this.updateNextTetro();
+        this.view.updateNextTetro(this.tetro, this.nextTetro);
     }
 
     /**
@@ -382,81 +374,35 @@ class Tetris3D {
         if (rowsToRemove.length) {
             // On calcule d'abord le bonus
             // @ts-ignore
-            let pointsScored = ((50 + (50 * parseInt(this.levelField.textContent))) * rowsToRemove.length) * rowsToRemove.length;
+            let pointsScored = ((50 + (50 * parseInt(this.view.level.textContent))) * rowsToRemove.length) * rowsToRemove.length;
             let hasPassedLevel = false;
             for (let rowToRemove of rowsToRemove) {
                 for (let x = 1; x < this.playfield.cols - 1; x++) {
                     // On met la case à zéro
                     this.playfield.data[x + rowToRemove * this.playfield.cols] = 0;
                     // Et on fait tomber les blocs
-                    for (let y = rowToRemove - 1; y >= 0; y--) {
+                    for (let y: number = rowToRemove - 1; y >= 0; y--) {
                         this.playfield.data[x + (y + 1) * this.playfield.cols] = this.playfield.data[x + y * this.playfield.cols];
                     }
                 }
                 // @ts-ignore
-                this.linesField.textContent = parseInt(this.linesField.textContent) + 1;
+                this.view.lines.textContent = parseInt(this.view.lines.textContent) + 1;
                 // On monte d'un niveau toute les 10 lignes
                 // @ts-ignore
-                if (!(parseInt(this.linesField.textContent) % 10)) {
+                if (!(parseInt(this.view.lines.textContent) % 10)) {
                     hasPassedLevel = true;
                 }
             }
-            this.scorePoints(pointsScored);
+            this.view.scorePoints(pointsScored);
             // On monte d'un niveau toute les 10 lignes
             if (hasPassedLevel) {
                 // @ts-ignore
-                this.levelField.textContent = parseInt(this.levelField.textContent) + 1;
+                this.view.level.textContent = <string><unknown>parseInt(this.view.level.textContent) + 1;
                 // Et on diminue le delai de chute des pièces de 5%
                 this.tetroFallDelay = this.tetroFallDelay * 0.95;
                 // On arrête et relance le timer avec le nouveau delai
                 window.clearInterval(this.fallCallback);
                 this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);
-            }
-        }
-    }
-
-    /**
-     * Dessine le tetromino suivant dans sa fenêtre dédiée.
-     */
-    private updateNextTetro() {
-        // @ts-ignore
-        this.nextTetroField.innerHTML = '';
-        let nextTetroSize: number;
-        // @ts-ignore
-        if (this.nextTetroField.clientHeight < this.nextTetroField.clientWidth) {
-            // @ts-ignore
-            nextTetroSize = this.nextTetroField.clientHeight * 0.75;
-        }
-        else {
-            // @ts-ignore
-            nextTetroSize = this.nextTetroField.clientWidth * 0.75;
-        }
-        let nextTetroBloc: number = nextTetroSize / 4;
-        // @ts-ignore
-        let nextTetroDivTop: number = this.nextTetroField.clientHeight / 2 - nextTetroBloc * 2;
-        // @ts-ignore
-        let nextTetroDivLeft: number = this.nextTetroField.clientWidth / 2 - nextTetroBloc * 2;
-        // Rendu du tetro
-        let nextTetroData: number[] = (this.tetro)[this.nextTetro - 1];
-        for (let row: number = 0; row < 4; row++) {
-            for (let col: number = 0; col < 4; col++) {
-                if (nextTetroData[col + row * 4] !== 0) {
-                    // Création du bloc
-                    let block: HTMLElement = document.createElement('div');
-                    block.style.position = 'absolute';
-                    block.style.width = nextTetroBloc + 'px';
-                    block.style.height = nextTetroBloc + 'px';
-                    block.style.top = (nextTetroDivTop + nextTetroBloc * row) + 'px';
-                    block.style.left = (nextTetroDivLeft + nextTetroBloc * col) + 'px';
-                    block.classList.add('tetromino')
-
-                    // Sélection de la pièce à afficher
-                    block.classList.add('tetromino' + this.nextTetro);
-
-                    // Dessin du bloc
-                    // @ts-ignore
-                    this.nextTetroField.appendChild(block);
-                }
             }
         }
     }
@@ -479,7 +425,7 @@ class Tetris3D {
             window.clearInterval(this.fallCallback);
             this.isGameOver = true;
             // @ts-ignore
-            this.nextTetroField.innerHTML = 'GAME OVER';
+            this.view.nextTetro.innerHTML = 'GAME OVER';
         }
     }
 
@@ -488,15 +434,6 @@ class Tetris3D {
      */
     private tetroFall() {
         this.moveTetro('down', <KeyboardEvent><unknown>null, true);
-    }
-
-    /**
-     * Permet de rajouter des points au score du joueur
-     * @param {int} points Points à rajouter au score
-     */
-    private scorePoints(points: number) {
-        // @ts-ignore
-        this.scoreField.textContent = (parseInt(this.scoreField.textContent) + points);
     }
 
     /**
@@ -514,18 +451,17 @@ class Tetris3D {
     /**
      * Dessine la scène 3D.
      */
-    private render() {
+    private render(time: number = Date.now()) {
         // Début du parcours du tableau de jeu
         for (let row = 0; row < this.playfield.rows; row++) {
             for (let col = 0; col < this.playfield.cols; col++) {
                 // On n'affiche pas les 10 premières lignes
                 if (row > 9) {
                     // Création du bloc à afficher
-
                 }
             }
         }
-        window.requestAnimationFrame(() => this.render());
+        window.requestAnimationFrame((time: number) => this.render(time));
     }
 }
 
