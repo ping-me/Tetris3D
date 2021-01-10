@@ -1,6 +1,6 @@
 import * as THREE from '/three.module.js';
-import { Playfield } from "./Playfield.js";
 import { HTMLView } from "./HTMLView.js";
+import { Playfield } from "./Playfield.js";
 
 class Tetris3D {
     // Composants de base THREE.js
@@ -11,8 +11,10 @@ class Tetris3D {
     // Vue HTML du jeu
     private view: HTMLView;
 
-    // Contrôle du jeu
+    // Données du jeu
     private playfield : Playfield;
+
+    // Contrôle du jeu
     private isGameOver: boolean = false;
     private tetroFallDelay: number = 1000;
     private isRotKeyDown: boolean = false;

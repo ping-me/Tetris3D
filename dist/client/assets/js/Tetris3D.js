@@ -1,6 +1,6 @@
 import * as THREE from '/three.module.js';
-import { Playfield } from "./Playfield.js";
 import { HTMLView } from "./HTMLView.js";
+import { Playfield } from "./Playfield.js";
 class Tetris3D {
     constructor(fc = 10, fr = 24) {
         this.isGameOver = false;
