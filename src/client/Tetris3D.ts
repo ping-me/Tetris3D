@@ -47,7 +47,7 @@ class Tetris3D {
      * @param fr Le nombre de lignes du terrain de jeu
      */
     public constructor(fc: number = 10, fr: number = 24) {
-        // Initialisation THREE.js
+        // Initialisation THREE
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
         this.renderer = new THREE.WebGLRenderer();
