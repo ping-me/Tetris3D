@@ -10,9 +10,9 @@ export class Playfield {
     public rows: number;
 
     /**
-     * Initialise le terrain de jeu avec des murs extérieur et l'intérieur vide.
-     * @param col Le nombre de colonnes du terrain de jeu
-     * @param row Le nombre de lignes du terrain de jeu
+     * Initialise le terrain de jeu avec les largeur et hauteur données.
+     * @param col Le nombre de colonnes du terrain de jeu.
+     * @param row Le nombre de lignes du terrain de jeu.
      */
     public constructor(col: number, row: number) {
         this.data = [];

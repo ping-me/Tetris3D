@@ -67,7 +67,7 @@ class Tetris3D {
                         // On met des tetromino incassables sur les bords et le bas
                         // pour délimiter le terrain de jeu.
                         this.playfield.data.push(8);
-                        this.engine.createCube(col + this.playfield.cols * row, 7);
+                        this.engine.createCube(col + this.playfield.cols * row, 8);
                         this.engine.placeCube(this.playfield.block[col + this.playfield.cols * row], col, row);
                     }
                     else {

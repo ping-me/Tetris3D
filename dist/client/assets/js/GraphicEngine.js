@@ -4,17 +4,20 @@ export class GraphicEngine {
         this.cubeColor = [
             0x008080,
             0x000080,
-            0xff8c00,
-            0xffd700,
+            0xff8000,
+            0xffff00,
             0x008000,
             0x800000,
             0x800080,
-            0x2020c0
+            0x010101
         ];
         this.playfield = pf;
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
         this.renderer = new THREE.WebGLRenderer();
+        this.light = new THREE.DirectionalLight(0xffffff, 10);
+        this.light.position.set(0, 0, 3);
+        this.scene.add(this.light);
         this.camera.position.z = 2;
         this.camera.position.y = -0.5;
         this.renderer.domElement.style.position = 'fixed';
@@ -40,7 +43,7 @@ export class GraphicEngine {
     createCube(indice, color) {
         let geometry = new THREE.BoxGeometry(this.tetroWidth, this.tetroWidth, this.tetroWidth);
         let material = new THREE.MeshStandardMaterial({
-            color: this.cubeColor[color],
+            color: this.cubeColor[color - 1],
             emissive: 0x202020,
             roughness: 0.2,
             metalness: 1

@@ -25,7 +25,7 @@ class Tetris3D {
                 if (row > 9) {
                     if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
                         this.playfield.data.push(8);
-                        this.engine.createCube(col + this.playfield.cols * row, 7);
+                        this.engine.createCube(col + this.playfield.cols * row, 8);
                         this.engine.placeCube(this.playfield.block[col + this.playfield.cols * row], col, row);
                     }
                     else {

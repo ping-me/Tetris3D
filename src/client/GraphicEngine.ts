@@ -3,8 +3,9 @@ import {Playfield} from "./Playfield";
 
 export class GraphicEngine {
     // Composants de base THREE.js
-    private scene: THREE.Scene;
-    private camera: THREE.PerspectiveCamera;
+    private readonly scene: THREE.Scene;
+    private readonly camera: THREE.PerspectiveCamera;
+    private readonly light: THREE.DirectionalLight;
     private renderer: THREE.WebGLRenderer;
 
     // Le terrain de jeu
@@ -15,14 +16,18 @@ export class GraphicEngine {
     private cubeColor: number[] = [
         0x008080,
         0x000080,
-        0xff8c00,
-        0xffd700,
+        0xff8000,
+        0xffff00,
         0x008000,
         0x800000,
         0x800080,
-        0x2020c0
+        0x010101
     ];
 
+    /**
+     * Initialise le terrain de jeu et les composants de base THREE.
+     * @param pf Le terrain de jeu.
+     */
     public constructor(pf: Playfield) {
         this.playfield = pf;
 
@@ -30,6 +35,10 @@ export class GraphicEngine {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
         this.renderer = new THREE.WebGLRenderer();
+
+        this.light = new THREE.DirectionalLight(0xffffff, 10);
+        this.light.position.set(0, 0, 3);
+        this.scene.add(this.light);
 
         this.camera.position.z = 2;
         this.camera.position.y = -0.5;
@@ -59,15 +68,26 @@ export class GraphicEngine {
         }
     }
 
+    /**
+     * Place un cube dans la scène.
+     * @param cube Le cube à placer.
+     * @param col La colonne sur laquelle se trouve le cube.
+     * @param row La ligne sur laquelle se trouve le cube.
+     */
     public placeCube(cube: THREE.Mesh, col: number, row: number) {
         cube.position.set(this.origin.x + col * this.tetroWidth, this.origin.y - row * this.tetroWidth, 0);
         this.scene.add(cube);
     }
 
+    /**
+     * Créé un cube à l'indice du tableau donné.
+     * @param indice L'indice du tableau où créer le cube.
+     * @param color La couleur du cube à créer.
+     */
     public createCube(indice: number, color: number) {
         let geometry: THREE.BoxGeometry = new THREE.BoxGeometry(this.tetroWidth, this.tetroWidth, this.tetroWidth);
         let material: THREE.MeshStandardMaterial = new THREE.MeshStandardMaterial({
-            color: this.cubeColor[color],
+            color: this.cubeColor[color - 1],
             emissive: 0x202020,
             roughness: 0.2,
             metalness: 1
@@ -75,6 +95,10 @@ export class GraphicEngine {
         this.playfield.block[indice] = new THREE.Mesh(geometry, material);
     }
 
+    /**
+     * Retire le cube à l'indice donné.
+     * @param indice L'indice du cube à supprimer.
+     */
     public removeCube(indice: number) {
         this.scene.remove(this.playfield.block[indice]);
         if (indice < this.playfield.block.length) {
@@ -96,6 +120,7 @@ export class GraphicEngine {
 
     /**
      * Dessine la scène 3D.
+     * @param time Le delta temps.
      */
     public animate(time: number = Date.now()) {
         this.renderer.render(this.scene, this.camera);
