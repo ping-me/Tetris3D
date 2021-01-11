@@ -40,7 +40,7 @@ class Tetris3D {
     ];
 
     /**
-     * Initialisation de THREE.js et création du canvas.
+     * Initialisation de la vue, du terrain de jeu et du moteur graphique.
      * @param fc Le nombre de colonnes du terrain de jeu
      * @param fr Le nombre de lignes du terrain de jeu
      */
@@ -80,7 +80,7 @@ class Tetris3D {
     }
 
     /**
-     * Permet de renseigner les div qui contiendront le score et le niveau actuel
+     * Assigne les div qui contiendront le score et le niveau actuel
      * DOIT être appelé.
      * @param nextTetro Le div qui doit afficher le prochain tetro
      * @param scoreDiv L'élément DOM contenant le score : son textContent sera remplacé
@@ -97,7 +97,7 @@ class Tetris3D {
     }
 
     /**
-     * Permet de renseigner les boutons de commande.
+     * Assigne les boutons de commande.
      * DOIT être appelé, mais si aucun argument, seul les touches du claviers seront disponibles.
      * @param lBtn Le bouton Gauche
      * @param lrBtn Le bouton pour tourner la pièce vers la gauche
@@ -147,10 +147,10 @@ class Tetris3D {
     }
 
     /**
-     * Permet de faire tourner un tetromino selon une rotation donnée.
-     * @param tetroToRotate Le tetromino à tourner, dans sa position par défaut
-     * @param rotation Le type de rotation à effectuer
-     * @returns Un tableau contenant le tetromino tourné
+     * Fait tourner un tetromino selon une rotation donnée.
+     * @param tetroToRotate Le tetromino à tourner, dans sa position par défaut.
+     * @param rotation Le type de rotation à effectuer.
+     * @returns Un tableau contenant le tetromino tourné.
      */
     private static rotate(tetroToRotate: number[], rotation: number | undefined) {
         let rotatedTetro: number[] = [];
@@ -182,7 +182,7 @@ class Tetris3D {
     }
 
     /**
-     * Permet de déplacer un tetromino.
+     * Déplace un tetromino.
      * @param action L'action a effectuer.
      * @param keyEvent Si c'est une touche du clavier qui a été appuyé, permet de récupérer la touche appuyée.
      * @param isCallback Mise à true par le callback pour indiquer que la pièce tombe.
@@ -318,11 +318,11 @@ class Tetris3D {
     }
 
     /**
-     * Permet de vérifier si on peut placer le tetromino à cet endroit.
-     * @param {int} xToCheck La position X du tetromino à vérifier
-     * @param {int} yToCheck La position Y du tetromino à vérifier
-     * @param {int} rotToCheck La rotation à appliquer au tetromino en cours de vérification
-     * @returns {boolean} true si la pièce peut être placée, sinon false
+     * Vérifie si on peut placer un tetromino à la position donnée.
+     * @param {int} xToCheck La position X du tetromino à vérifier.
+     * @param {int} yToCheck La position Y du tetromino à vérifier.
+     * @param {int} rotToCheck La rotation à appliquer au tetromino en cours de vérification.
+     * @returns {boolean} true si la pièce peut être placée, sinon false.
      */
     private canPlaceTetro(xToCheck: number, yToCheck: number, rotToCheck: number) {
         let tetroArray: number[] = Tetris3D.rotate((this.tetro)[this.currentTetro - 1], rotToCheck);
@@ -342,7 +342,7 @@ class Tetris3D {
     }
 
     /**
-     * Permet d'afficher ou de masquer un tetromino.
+     * Affiche ou masque un tetromino.
      * @param show Toggle pour afficher ou cacher le tetromino.
      */
     private placeTetro(show: boolean = true) {
@@ -371,7 +371,7 @@ class Tetris3D {
     }
 
     /**
-     * Permet de vérifier si des lignes ont été réalisées.
+     * Vérifie si des lignes ont été réalisées.
      */
     private checkLines() {
         // On recherche d'abord les lignes
@@ -417,7 +417,7 @@ class Tetris3D {
                 }
             }
             this.view.scorePoints(pointsScored);
-            // On monte d'un niveau toute les 10 lignes
+            // Si niveau suivant
             if (hasPassedLevel) {
                 // @ts-ignore
                 this.view.level.textContent = <string><unknown>parseInt(this.view.level.textContent) + 1;
@@ -431,7 +431,7 @@ class Tetris3D {
     }
 
     /**
-     * Fais du prochain tetromino le tetromino en cours, et crée le suivant.
+     * Fait du prochain tetromino le tetromino en cours, et crée le suivant.
      */
     private newTetro() {
         this.currentTetro = this.nextTetro;

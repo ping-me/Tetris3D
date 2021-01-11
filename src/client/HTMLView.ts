@@ -13,7 +13,7 @@ export class HTMLView {
     public downBtn?: HTMLElement;
 
     /**
-     * Permet de rajouter des points au score du joueur
+     * Rajoute des points au score du joueur
      * @param {int} points Points à rajouter au score
      */
     public scorePoints(points: number) {
