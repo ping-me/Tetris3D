@@ -13,7 +13,7 @@ class App {
         // Définition des routes
         app.use(express_1.default.static(path_1.default.join(__dirname, '../client')));
         app.use('/build/three.module.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/build/three.module.js')));
-        app.use('/jsm/controls/OrbitControls.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/controls/OrbitControls.js')));
+        app.use('/jsm/controls/OrbitControls', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/controls/OrbitControls.js')));
         // Démarrage du serveur
         this.server = new http_1.default.Server(app);
     }
