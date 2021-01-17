@@ -40,7 +40,10 @@ export class GraphicEngine {
         // Initialisation THREE
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
-        this.renderer = new THREE.WebGLRenderer({canvas});
+        this.renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true
+        });
         this.renderer.setPixelRatio( window.devicePixelRatio );
         this.playFieldGroup = new THREE.Group();
 

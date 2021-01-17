@@ -67,11 +67,11 @@ class Tetris3D {
         // Création des murs extérieurs du terrain de jeu
         for (let row: number = 0; row < this.playfield.rows; row++) {
             for (let col: number = 0; col < this.playfield.cols; col++) {
-                // On n'affiche pas les 10 premières lignes
                 if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
                     // On met des tetromino incassables sur les bords et le bas
                     // pour délimiter le terrain de jeu.
                     this.playfield.data.push(8);
+                    // On n'affiche pas les 10 premières lignes
                     if (row > 9) {
                         this.engine.createCube(col + this.playfield.cols * row, 8);
                         this.engine.placeCube(this.playfield.block[col + this.playfield.cols * row], col, row);
