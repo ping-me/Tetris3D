@@ -1,9 +1,7 @@
-import * as THREE from '/three.module.js';
-
 export class Playfield {
     // Données du terrain de jeu
     public data: number[];
-    public block: THREE.Mesh[];
+    public block: any[];
 
     // Taille du terrain de jeu
     public cols: number;

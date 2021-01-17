@@ -2,10 +2,13 @@ import { HTMLView } from "./HTMLView.js";
 import { Playfield } from "./Playfield.js";
 import { GraphicEngine } from "./GraphicEngine.js";
 class Tetris3D {
-    constructor(fc = 10, fr = 24) {
+    constructor(canvas, fc = 10, fr = 24) {
         this.isGameOver = false;
         this.tetroFallDelay = 1000;
         this.isRotKeyDown = false;
+        this.score = 0;
+        this.level = 0;
+        this.lines = 0;
         this.tetro = [
             [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0],
             [0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0],
@@ -16,21 +19,22 @@ class Tetris3D {
             [0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]
         ];
         this.view = new HTMLView();
+        this.view.canvas = canvas;
         this.playfield = new Playfield(fc, fr);
-        this.engine = new GraphicEngine(this.playfield);
+        this.engine = new GraphicEngine(this.view.canvas, this.playfield);
         this.nextTetro = Math.floor(Math.random() * 7) + 1;
         this.currentTetro = 0;
         for (let row = 0; row < this.playfield.rows; row++) {
             for (let col = 0; col < this.playfield.cols; col++) {
-                if (row > 9) {
-                    if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
-                        this.playfield.data.push(8);
+                if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
+                    this.playfield.data.push(8);
+                    if (row > 9) {
                         this.engine.createCube(col + this.playfield.cols * row, 8);
                         this.engine.placeCube(this.playfield.block[col + this.playfield.cols * row], col, row);
                     }
-                    else {
-                        this.playfield.data.push(0);
-                    }
+                }
+                else {
+                    this.playfield.data.push(0);
                 }
             }
         }
@@ -129,7 +133,8 @@ class Tetris3D {
                     break;
                 case 'down':
                     if (!isCallback) {
-                        this.view.scorePoints(10);
+                        this.score += this.level;
+                        this.view.scorePoints(this.score);
                         window.clearInterval(this.fallCallback);
                         this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                     }
@@ -171,7 +176,8 @@ class Tetris3D {
                             break;
                         case 's':
                         case 'S':
-                            this.view.scorePoints(10);
+                            this.score += this.level;
+                            this.view.scorePoints(this.score);
                             window.clearInterval(this.fallCallback);
                             this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                             nextTetroY++;
@@ -204,7 +210,8 @@ class Tetris3D {
                 }
                 if (willStick) {
                     this.placeTetro();
-                    this.view.scorePoints(50);
+                    this.score += this.level * 10;
+                    this.view.scorePoints(this.score);
                     this.checkLines();
                     this.newTetro();
                 }
@@ -248,7 +255,7 @@ class Tetris3D {
                 }
             }
         }
-        this.view.updateNextTetro(this.tetro, this.nextTetro);
+        this.view.updateNextTetro(this.tetro[this.nextTetro - 1], this.nextTetro);
     }
     checkLines() {
         let rowsToRemove = [];
@@ -257,6 +264,7 @@ class Tetris3D {
             for (let col = 1; col < this.playfield.cols - 1; col++) {
                 if (this.playfield.data[col + row * this.playfield.cols] === 0) {
                     hasLine = false;
+                    break;
                 }
             }
             if (hasLine) {
@@ -264,7 +272,7 @@ class Tetris3D {
             }
         }
         if (rowsToRemove.length) {
-            let pointsScored = ((50 + (50 * parseInt(this.view.level.textContent))) * rowsToRemove.length) * rowsToRemove.length;
+            let pointsScored = ((50 + 50 * this.level) * rowsToRemove.length) * rowsToRemove.length;
             let hasPassedLevel = false;
             for (let rowToRemove of rowsToRemove) {
                 for (let col = 1; col < this.playfield.cols - 1; col++) {
@@ -279,14 +287,15 @@ class Tetris3D {
                         }
                     }
                 }
-                this.view.lines.textContent = parseInt(this.view.lines.textContent) + 1;
-                if (!(parseInt(this.view.lines.textContent) % 10)) {
+                this.view.lines.textContent = ++this.lines;
+                if (!(this.lines % 10)) {
                     hasPassedLevel = true;
                 }
             }
-            this.view.scorePoints(pointsScored);
+            this.score += pointsScored;
+            this.view.scorePoints(this.score);
             if (hasPassedLevel) {
-                this.view.level.textContent = parseInt(this.view.level.textContent) + 1;
+                this.view.level.textContent = ++this.level;
                 this.tetroFallDelay = this.tetroFallDelay * 0.95;
                 window.clearInterval(this.fallCallback);
                 this.fallCallback = window.setInterval(this.tetroFall, this.tetroFallDelay);

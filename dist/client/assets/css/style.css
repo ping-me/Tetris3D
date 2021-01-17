@@ -14,6 +14,11 @@ body {
     height: 100vh;
     min-width: 300px;
     background-color: #0000;
+    margin: 0;
+}
+
+canvas {
+    margin: 0;
 }
 
 /* Hauteur des conteneurs en mode par défaut (mobile) */

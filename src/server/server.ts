@@ -2,7 +2,6 @@ import http from 'http';
 import path from 'path';
 import express from 'express';
 
-
 class App {
     private server: http.Server;
     private readonly port: number;
@@ -13,7 +12,8 @@ class App {
 
         // Définition des routes
         app.use(express.static(path.join(__dirname, '../client')));
-        app.use('/three.module.js', express.static(path.join(__dirname, '../../node_modules/three/build/three.module.js')))
+        app.use('/build/three.module.js', express.static(path.join(__dirname, '../../node_modules/three/build/three.module.js')))
+        app.use('/jsm/controls/OrbitControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/OrbitControls.js')))
 
         // Démarrage du serveur
         this.server = new http.Server(app);

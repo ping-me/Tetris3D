@@ -17,6 +17,10 @@ class Tetris3D {
     private tetroFallDelay: number = 1000;
     private isRotKeyDown: boolean = false;
 
+    private score: number = 0;
+    private level: number = 0;
+    private lines: number = 0;
+
     // ID du timer pour faire tomber les pièces
     private fallCallback?: number;
 
@@ -41,18 +45,20 @@ class Tetris3D {
 
     /**
      * Initialisation de la vue, du terrain de jeu et du moteur graphique.
+     * @param canvas Le canvas 3D
      * @param fc Le nombre de colonnes du terrain de jeu
      * @param fr Le nombre de lignes du terrain de jeu
      */
-    public constructor(fc: number = 10, fr: number = 24) {
+    public constructor(canvas: HTMLCanvasElement, fc: number = 10, fr: number = 24) {
         // Création de l'objet pour la vue HTML
         this.view = new HTMLView();
+        this.view.canvas = canvas;
 
         // Initialisation des données du terrain de jeu
         this.playfield = new Playfield(fc, fr);
 
         // Création du moteur graphique
-        this.engine = new GraphicEngine(this.playfield);
+        this.engine = new GraphicEngine(this.view.canvas, this.playfield);
 
         // Choix du prochain tetro
         this.nextTetro = Math.floor(Math.random() * 7) + 1;
@@ -62,18 +68,18 @@ class Tetris3D {
         for (let row: number = 0; row < this.playfield.rows; row++) {
             for (let col: number = 0; col < this.playfield.cols; col++) {
                 // On n'affiche pas les 10 premières lignes
-                if (row > 9) {
-                    if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
-                        // On met des tetromino incassables sur les bords et le bas
-                        // pour délimiter le terrain de jeu.
-                        this.playfield.data.push(8);
+                if ((col == 0) || (col == this.playfield.cols - 1) || (row == this.playfield.rows - 1)) {
+                    // On met des tetromino incassables sur les bords et le bas
+                    // pour délimiter le terrain de jeu.
+                    this.playfield.data.push(8);
+                    if (row > 9) {
                         this.engine.createCube(col + this.playfield.cols * row, 8);
                         this.engine.placeCube(this.playfield.block[col + this.playfield.cols * row], col, row);
                     }
-                    else {
-                        // On laisse l'espace vide pour le reste.
-                        this.playfield.data.push(0);
-                    }
+                }
+                else {
+                    // On laisse l'espace vide pour le reste.
+                    this.playfield.data.push(0);
                 }
             }
         }
@@ -219,7 +225,8 @@ class Tetris3D {
                 case 'down':
                     if (!isCallback) {
                         // Si on fait descendre la pièce et que ce n'est pas le callback
-                        this.view.scorePoints(10);
+                        this.score += this.level;
+                        this.view.scorePoints(this.score);
                         window.clearInterval(this.fallCallback);
                         this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                     }
@@ -263,7 +270,8 @@ class Tetris3D {
                         case 's':
                         case 'S':
                             // On rajoute 10 points par lignes quand on fait descendre volontairement la pièce
-                            this.view.scorePoints(10);
+                            this.score += this.level;
+                            this.view.scorePoints(this.score);
                             window.clearInterval(this.fallCallback);
                             this.fallCallback = window.setInterval(() => this.tetroFall(), this.tetroFallDelay);
                             nextTetroY++;
@@ -305,7 +313,8 @@ class Tetris3D {
                     // La pièce s'accroche
                     this.placeTetro();
                     // On rajoute 50 points pour avoir collé la pièce
-                    this.view.scorePoints(50);
+                    this.score += this.level * 10;
+                    this.view.scorePoints(this.score);
                     this.checkLines();
                     this.newTetro();
                 }
@@ -367,7 +376,7 @@ class Tetris3D {
             }
         }
         // Mets aussi à jour le nouveau tetro
-        this.view.updateNextTetro(this.tetro, this.nextTetro);
+        this.view.updateNextTetro(this.tetro[this.nextTetro - 1], this.nextTetro);
     }
 
     /**
@@ -381,6 +390,7 @@ class Tetris3D {
             for (let col: number = 1; col < this.playfield.cols - 1; col++) {
                 if (this.playfield.data[col + row * this.playfield.cols] === 0) {
                     hasLine = false;
+                    break;
                 }
             }
             if (hasLine) {
@@ -391,7 +401,7 @@ class Tetris3D {
         if (rowsToRemove.length) {
             // On calcule d'abord le bonus
             // @ts-ignore
-            let pointsScored = ((50 + (50 * parseInt(this.view.level.textContent))) * rowsToRemove.length) * rowsToRemove.length;
+            let pointsScored = ((50 + 50 * this.level) * rowsToRemove.length) * rowsToRemove.length;
             let hasPassedLevel = false;
             for (let rowToRemove of rowsToRemove) {
                 for (let col: number = 1; col < this.playfield.cols - 1; col++) {
@@ -409,18 +419,19 @@ class Tetris3D {
                     }
                 }
                 // @ts-ignore
-                this.view.lines.textContent = parseInt(this.view.lines.textContent) + 1;
+                this.view.lines.textContent = ++this.lines;
                 // On monte d'un niveau toute les 10 lignes
                 // @ts-ignore
-                if (!(parseInt(this.view.lines.textContent) % 10)) {
+                if (!(this.lines % 10)) {
                     hasPassedLevel = true;
                 }
             }
-            this.view.scorePoints(pointsScored);
+            this.score += pointsScored;
+            this.view.scorePoints(this.score);
             // Si niveau suivant
             if (hasPassedLevel) {
                 // @ts-ignore
-                this.view.level.textContent = <string><unknown>parseInt(this.view.level.textContent) + 1;
+                this.view.level.textContent = ++this.level;
                 // Et on diminue le delai de chute des pièces de 5%
                 this.tetroFallDelay = this.tetroFallDelay * 0.95;
                 // On arrête et relance le timer avec le nouveau delai

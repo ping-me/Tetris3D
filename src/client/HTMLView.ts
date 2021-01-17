@@ -1,4 +1,6 @@
 export class HTMLView {
+    // Playfield
+    public canvas?: HTMLCanvasElement;
     // Divs container pour les données de jeu
     public nextTetro?: HTMLElement;
     public score?: HTMLElement;
@@ -18,13 +20,13 @@ export class HTMLView {
      */
     public scorePoints(points: number) {
         // @ts-ignore
-        this.score.textContent = (parseInt(this.score.textContent) + points);
+        this.score.textContent = points;
     }
 
     /**
      * Dessine le tetromino suivant dans sa fenêtre dédiée.
      */
-    public updateNextTetro(tetro: number[][], nextTetroType: number) {
+    public updateNextTetro(tetro: number[], nextTetroType: number) {
         // @ts-ignore
         this.nextTetro.innerHTML = '';
         let nextTetroSize: number;
@@ -43,10 +45,9 @@ export class HTMLView {
         // @ts-ignore
         let nextTetroDivLeft: number = this.nextTetro.clientWidth / 2 - nextTetroBloc * 2;
         // Rendu du tetro
-        let nextTetroData: number[] = tetro[nextTetroType - 1];
         for (let row: number = 0; row < 4; row++) {
             for (let col: number = 0; col < 4; col++) {
-                if (nextTetroData[col + row * 4] !== 0) {
+                if (tetro[col + row * 4] !== 0) {
                     // Création du bloc
                     let block: HTMLElement = document.createElement('div');
                     block.style.position = 'absolute';

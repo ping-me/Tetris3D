@@ -1,6 +1,6 @@
 export class HTMLView {
     scorePoints(points) {
-        this.score.textContent = (parseInt(this.score.textContent) + points);
+        this.score.textContent = points;
     }
     updateNextTetro(tetro, nextTetroType) {
         this.nextTetro.innerHTML = '';
@@ -14,10 +14,9 @@ export class HTMLView {
         let nextTetroBloc = nextTetroSize / 4;
         let nextTetroDivTop = this.nextTetro.clientHeight / 2 - nextTetroBloc * 2;
         let nextTetroDivLeft = this.nextTetro.clientWidth / 2 - nextTetroBloc * 2;
-        let nextTetroData = tetro[nextTetroType - 1];
         for (let row = 0; row < 4; row++) {
             for (let col = 0; col < 4; col++) {
-                if (nextTetroData[col + row * 4] !== 0) {
+                if (tetro[col + row * 4] !== 0) {
                     let block = document.createElement('div');
                     block.style.position = 'absolute';
                     block.style.width = nextTetroBloc + 'px';

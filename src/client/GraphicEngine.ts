@@ -1,14 +1,20 @@
-import * as THREE from '/three.module.js';
-import {Playfield} from "./Playfield";
+// @ts-ignore
+import * as THREE from '/build/three.module.js';
+// @ts-ignore
+import { OrbitControls } from '/jsm/controls/OrbitControls.js'
+import { Playfield } from "./Playfield";
 
 export class GraphicEngine {
     // Composants de base THREE.js
     private readonly scene: THREE.Scene;
     private readonly camera: THREE.PerspectiveCamera;
-    private readonly light: THREE.DirectionalLight;
     private renderer: THREE.WebGLRenderer;
+    private controls: OrbitControls;
+
+    private readonly playFieldGroup: THREE.Group;
 
     // Le terrain de jeu
+    private canvas: HTMLCanvasElement;
     private playfield: Playfield;
     private origin: THREE.Vector3;
 
@@ -26,29 +32,35 @@ export class GraphicEngine {
 
     /**
      * Initialise le terrain de jeu et les composants de base THREE.
+     * @param canvas Le canvas 3D
      * @param pf Le terrain de jeu.
      */
-    public constructor(pf: Playfield) {
+    public constructor(canvas: HTMLCanvasElement, pf: Playfield) {
+        this.canvas = canvas;
         this.playfield = pf;
 
         // Initialisation THREE
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
-        this.renderer = new THREE.WebGLRenderer();
+        this.renderer = new THREE.WebGLRenderer({canvas});
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.playFieldGroup = new THREE.Group();
 
-        this.light = new THREE.DirectionalLight(0xffffff, 10);
-        this.light.position.set(0, 0, 3);
-        this.scene.add(this.light);
+        this.scene.add(this.playFieldGroup);
+        this.controls = new OrbitControls(this.camera, this.canvas);
+
+        for (let x: number = -1; x <= 1; x += 0.5) {
+            for (let y: number = -1; y <= 1; y += 0.5) {
+                for (let z: number = 0; z <= 1; z += 0.5) {
+                    let light = new THREE.DirectionalLight(0xffffff, 3);
+                    light.position.set(x, y, z);
+                    this.playFieldGroup.add(light);
+                }
+            }
+        }
 
         this.camera.position.z = 2;
-        this.camera.position.y = -0.5;
-
-        // Ajout de la zone de jeu au DOM
-        this.renderer.domElement.style.position = 'fixed';
-        this.renderer.domElement.style.top = '0';
-        this.renderer.domElement.style.left = '0';
-        this.renderer.domElement.style.zIndex = '-1';
-        document.body.appendChild(this.renderer.domElement);
+        this.camera.position.y = -1;
 
 
         // Dimensionnement initial du terrain de jeu
@@ -76,7 +88,7 @@ export class GraphicEngine {
      */
     public placeCube(cube: THREE.Mesh, col: number, row: number) {
         cube.position.set(this.origin.x + col * this.tetroWidth, this.origin.y - row * this.tetroWidth, 0);
-        this.scene.add(cube);
+        this.playFieldGroup.add(cube);
     }
 
     /**
@@ -87,10 +99,10 @@ export class GraphicEngine {
     public createCube(indice: number, color: number) {
         let geometry: THREE.BoxGeometry = new THREE.BoxGeometry(this.tetroWidth, this.tetroWidth, this.tetroWidth);
         let material: THREE.MeshStandardMaterial = new THREE.MeshStandardMaterial({
-            color: this.cubeColor[color - 1],
-            emissive: 0x202020,
+            color: new THREE.Color(this.cubeColor[color - 1]),
+            emissive: new THREE.Color(0x202020),
             roughness: 0.2,
-            metalness: 1
+            metalness: 1.0
         });
         this.playfield.block[indice] = new THREE.Mesh(geometry, material);
     }
@@ -100,7 +112,7 @@ export class GraphicEngine {
      * @param indice L'indice du cube à supprimer.
      */
     public removeCube(indice: number) {
-        this.scene.remove(this.playfield.block[indice]);
+        this.playFieldGroup.remove(this.playfield.block[indice]);
         if (indice < this.playfield.block.length) {
             delete this.playfield.block[indice];
         }
@@ -113,9 +125,11 @@ export class GraphicEngine {
      * et met à jour les coordonnées du centre de l'écran.
      */
     public resize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+        // @ts-ignore
+        this.camera.aspect = this.canvas.parentElement.clientWidth / this.canvas.parentElement.clientHeight;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        // @ts-ignore
+        this.renderer.setSize(this.canvas.parentElement.clientWidth, this.canvas.parentElement.clientHeight);
     }
 
     /**
@@ -123,7 +137,8 @@ export class GraphicEngine {
      * @param time Le delta temps.
      */
     public animate(time: number = Date.now()) {
-        this.renderer.render(this.scene, this.camera);
         window.requestAnimationFrame((time: number) => this.animate(time));
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
     }
 }
