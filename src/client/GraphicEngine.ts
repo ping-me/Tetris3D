@@ -116,8 +116,8 @@ export class GraphicEngine {
         this.texture[4].wrapT = THREE.RepeatWrapping;
         this.texture[5].wrapS = THREE.RepeatWrapping;
         this.texture[5].wrapT = THREE.RepeatWrapping;
-        this.texture[4].repeat.set(10, 10);
-        this.texture[5].repeat.set(10, 10);
+        this.texture[4].repeat.set(20, 20);
+        this.texture[5].repeat.set(20, 20);
         this.material[9] = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(0xffffff),
             map: this.texture[4],
