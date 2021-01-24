@@ -352,7 +352,7 @@ class Tetris3D {
 
     /**
      * Affiche ou masque un tetromino.
-     * @param show Toggle pour afficher ou cacher le tetromino.
+     * @param show Toggle pour afficher ou supprimer le tetromino.
      */
     private placeTetro(show: boolean = true) {
         let tetroArray = Tetris3D.rotate(this.tetro[this.currentTetro - 1], this.currentTetroRot);

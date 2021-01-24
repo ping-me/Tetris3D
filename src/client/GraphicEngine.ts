@@ -12,21 +12,29 @@ export class GraphicEngine {
     private readonly playFieldGroup: THREE.Group;
 
     // Le terrain de jeu
-    private canvas: HTMLCanvasElement;
+    private readonly canvas: HTMLCanvasElement;
     private playfield: Playfield;
     private origin: THREE.Vector3;
+    private readonly ground: THREE.Mesh;
 
     private readonly tetroWidth: number;
     private cubeColor: number[] = [
         0x008080,
         0x000080,
-        0xff8000,
+        0xff4000,
         0xffff00,
         0x008000,
         0x800000,
         0x800080,
-        0x010101
+        0xffffff
     ];
+
+    // Geometry, textures et materials
+    private readonly cubeGeometry: THREE.Geometry;
+    private texture: THREE.Texture[] = [];
+    private material: THREE.Material[] = [];
+
+    private frameDelta: number = 0;
 
     /**
      * Initialise le terrain de jeu et les composants de base THREE.
@@ -37,48 +45,98 @@ export class GraphicEngine {
         this.canvas = canvas;
         this.playfield = pf;
 
-        // Initialisation THREE
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.5, 100);
-        this.renderer = new THREE.WebGLRenderer({
-            canvas,
-            antialias: true
-        });
-        this.renderer.setPixelRatio( window.devicePixelRatio );
-        this.playFieldGroup = new THREE.Group();
-
-        this.scene.add(this.playFieldGroup);
-        this.controls = new OrbitControls(this.camera, this.canvas);
-
-        for (let x: number = -1; x <= 1; x += 0.5) {
-            for (let y: number = -1; y <= 1; y += 0.5) {
-                for (let z: number = 0; z <= 1; z += 0.5) {
-                    let light = new THREE.DirectionalLight(0xffffff, 3);
-                    light.position.set(x, y, z);
-                    this.playFieldGroup.add(light);
-                }
-            }
-        }
-
-        this.camera.position.z = 2;
-        this.camera.position.y = -1;
-
-
-        // Dimensionnement initial du terrain de jeu
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-
+        // Calcul de la taille d'un cube et création du sol
         // Si le terrain est plus large que haut
+        let groundY = -1;
         if (this.playfield.cols > this.playfield.rows) {
             // On adapte le terrain pour prendre toute la largeur
             this.tetroWidth = 2 / this.playfield.cols;
             this.origin = new THREE.Vector3(-1, this.playfield.rows * this.tetroWidth / 2, 0);
+            groundY = -(this.playfield.rows * this.tetroWidth / 2);
         }
         else {
             // Sinon on adapte le terrain pour prendre toute la hauteur
             this.tetroWidth = 2 / this.playfield.rows;
             this.origin = new THREE.Vector3(-(this.playfield.cols * this.tetroWidth / 2), 1, 0);
         }
+
+        this.cubeGeometry = new THREE.BoxGeometry(this.tetroWidth, this.tetroWidth, this.tetroWidth);
+
+        // Initialisation THREE
+        this.scene = new THREE.Scene();
+        this.scene.fog = new THREE.FogExp2(0x000000, 0.5);
+
+        this.camera = new THREE.PerspectiveCamera(75, document.body.clientWidth / document.body.clientHeight, 0.01, 100);
+        this.renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true
+        });
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+
+        this.camera.position.z = 1.5;
+
+        this.playFieldGroup = new THREE.Group();
+        this.scene.add(this.playFieldGroup);
+
+        // Initialisation du control caméra
+        this.controls = new OrbitControls(this.camera, this.canvas);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.1;
+        this.controls.maxAzimuthAngle = Math.PI / 2;
+        this.controls.maxDistance = 2;
+
+        // Placement des lumières
+        for (let x: number = -1; x <= 1; x += 0.5) {
+            for (let y: number = -1; y <= 1; y += 0.5) {
+                let light = new THREE.DirectionalLight(0xffffff, 0.1);
+                light.position.set(x, y, -1);
+                light.position.set(x, y, 1);
+                this.playFieldGroup.add(light);
+            }
+        }
+
+        // Chargement des textures
+        this.texture[0] = new THREE.TextureLoader().load('/assets/tex/cube.jpg');
+        this.texture[1] = new THREE.TextureLoader().load('/assets/tex/wall.jpg');
+        this.texture[2] = new THREE.TextureLoader().load('/assets/tex/cube-bump.jpg');
+        this.texture[3] = new THREE.TextureLoader().load('/assets/tex/wall-bump.jpg');
+        this.texture[4] = new THREE.TextureLoader().load('/assets/tex/ground.jpg');
+        this.texture[5] = new THREE.TextureLoader().load('/assets/tex/ground-bump.jpg');
+
+        for (let color = 0; color < 9; color++) {
+            this.material[color] = new THREE.MeshPhysicalMaterial({
+                color: new THREE.Color(this.cubeColor[color - 1]),
+                map: (color < 8) ? this.texture[0] : this.texture[1],
+                bumpMap: (color < 8) ? this.texture[2] : this.texture[3],
+                bumpScale: 0.025
+            });
+        }
+
+        this.texture[4].wrapS = THREE.RepeatWrapping;
+        this.texture[4].wrapT = THREE.RepeatWrapping;
+        this.texture[5].wrapS = THREE.RepeatWrapping;
+        this.texture[5].wrapT = THREE.RepeatWrapping;
+        this.texture[4].repeat.set(10, 10);
+        this.texture[5].repeat.set(10, 10);
+        this.material[9] = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(0xffffff),
+            map: this.texture[4],
+            bumpMap: this.texture[5],
+            bumpScale: 0.025,
+            side: THREE.DoubleSide
+        });
+
+        // Création du sol
+        let groundGeometry = new THREE.PlaneGeometry(3, 3);
+        this.ground = new THREE.Mesh(groundGeometry, this.material[9]);
+        this.ground.rotateX(-Math.PI / 2);
+        this.ground.translateZ(groundY);
+        this.scene.add(this.ground);
+
+        // Dimensionnement initial du terrain de jeu
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+
     }
 
     /**
@@ -89,7 +147,6 @@ export class GraphicEngine {
      */
     public placeCube(cube: THREE.Mesh, col: number, row: number) {
         cube.position.set(this.origin.x + col * this.tetroWidth, this.origin.y - row * this.tetroWidth, 0);
-        this.playFieldGroup.add(cube);
     }
 
     /**
@@ -98,14 +155,8 @@ export class GraphicEngine {
      * @param color La couleur du cube à créer.
      */
     public createCube(indice: number, color: number) {
-        let geometry: THREE.BoxGeometry = new THREE.BoxGeometry(this.tetroWidth, this.tetroWidth, this.tetroWidth);
-        let material: THREE.MeshStandardMaterial = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(this.cubeColor[color - 1]),
-            emissive: new THREE.Color(0x202020),
-            roughness: 0.2,
-            metalness: 1.0
-        });
-        this.playfield.block[indice] = new THREE.Mesh(geometry, material);
+        this.playfield.block[indice] = new THREE.Mesh(this.cubeGeometry, this.material[color]);
+        this.playFieldGroup.add(this.playfield.block[indice]);
     }
 
     /**
